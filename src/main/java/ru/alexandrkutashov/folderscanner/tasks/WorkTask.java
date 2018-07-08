@@ -93,10 +93,9 @@ public class WorkTask implements Runnable {
     }
 
     private void execute(File file) {
-        //logger.debug(file.toString());
-
         Entry entry = fileConverter.convert(file);
         if (entry != null) {
+            //logger.debug(file.toString());
             handleQueue.add(entry);
         }
     }

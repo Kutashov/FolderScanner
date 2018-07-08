@@ -1,4 +1,4 @@
-package ru.alexandrkutashov.folderscanner;
+package ru.alexandrkutashov.folderscanner.db;
 
 import java.util.Date;
 
@@ -8,5 +8,5 @@ import java.util.Date;
 @FunctionalInterface
 public interface IFileHandler {
 
-    void handleContent(String content, Date date);
+    void handleContent(String content, Date date) throws Exception;
 }
