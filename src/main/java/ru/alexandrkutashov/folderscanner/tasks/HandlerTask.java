@@ -1,16 +1,20 @@
 package ru.alexandrkutashov.folderscanner.tasks;
 
 import ru.alexandrkutashov.folderscanner.IFileHandler;
+import ru.alexandrkutashov.folderscanner.xml.Entry;
 
-import java.io.File;
 import java.util.Queue;
 
+/**
+ * Job for saving entries to db.
+ * Keep it on a single thread to minimize table locks.
+ */
 public class HandlerTask implements Runnable {
 
-    private final Queue<File> handlerQueue;
+    private final Queue<Entry> handlerQueue;
     private final IFileHandler fileHandler;
 
-    public HandlerTask(Queue<File> queue, IFileHandler handler) {
+    public HandlerTask(Queue<Entry> queue, IFileHandler handler) {
         handlerQueue = queue;
         fileHandler = handler;
     }
@@ -18,9 +22,9 @@ public class HandlerTask implements Runnable {
     @Override
     public void run() {
         while (true) {
-            File file = handlerQueue.poll();
+            Entry file = handlerQueue.poll();
             if (file != null) {
-                fileHandler.handleContent(null, null);
+                fileHandler.handleContent(file.getContent(), file.getDate());
             }
         }
     }

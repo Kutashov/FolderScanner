@@ -2,6 +2,8 @@ package ru.alexandrkutashov.folderscanner.tasks;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.alexandrkutashov.folderscanner.xml.Entry;
+import ru.alexandrkutashov.folderscanner.xml.IFileConverter;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -23,15 +25,18 @@ public class WorkTask implements Runnable {
 
     private final Queue<File> filesQueue;
     private final Queue<File> foldersQueue;
-    private final Queue<File> handleQueue;
+    private final Queue<Entry> handleQueue;
+    private final IFileConverter fileConverter;
 
     private List<File> filesList = new LinkedList<>();
     private List<File> folderList = new LinkedList<>();
 
-    public WorkTask(Queue<File> filesQueue, Queue<File> foldersQueue, Queue<File> handleQueue) {
+    public WorkTask(Queue<File> filesQueue, Queue<File> foldersQueue,
+                    Queue<Entry> handleQueue, IFileConverter fileConverter) {
         this.filesQueue = filesQueue;
         this.foldersQueue = foldersQueue;
         this.handleQueue = handleQueue;
+        this.fileConverter = fileConverter;
     }
 
     @Override
@@ -90,6 +95,9 @@ public class WorkTask implements Runnable {
     private void execute(File file) {
         //logger.debug(file.toString());
 
-        handleQueue.add(file);
+        Entry entry = fileConverter.convert(file);
+        if (entry != null) {
+            handleQueue.add(entry);
+        }
     }
 }
