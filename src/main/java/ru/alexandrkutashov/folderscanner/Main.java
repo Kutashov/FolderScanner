@@ -2,7 +2,8 @@ package ru.alexandrkutashov.folderscanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.alexandrkutashov.folderscanner.db.DBHandler;
+import ru.alexandrkutashov.folderscanner.db.DB;
+import ru.alexandrkutashov.folderscanner.db.FileMover;
 import ru.alexandrkutashov.folderscanner.tasks.HandlerTask;
 import ru.alexandrkutashov.folderscanner.tasks.StartTask;
 import ru.alexandrkutashov.folderscanner.tasks.WorkTask;
@@ -38,7 +39,8 @@ public class Main {
                 schedulerThreads.execute(new WorkTask(filesQueue, foldersQueue, databaseQueue,
                         symbolicLinkSet, new XmlFileConverter()));
             }
-            schedulerThreads.execute(new HandlerTask(databaseQueue, new DBHandler()));
+            schedulerThreads.execute(new HandlerTask(databaseQueue, new DB(),
+                    new FileMover("C:\\Users\\Alexandr\\Desktop")));
 
             //schedule checking
             scheduler.scheduleAtFixedRate(new StartTask(filesQueue, foldersQueue, "C:\\Programming\\android-sdk"),

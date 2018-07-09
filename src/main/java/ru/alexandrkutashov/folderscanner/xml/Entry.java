@@ -4,6 +4,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -16,6 +17,7 @@ public class Entry {
 
     private String content;
     private Date date;
+    private File file;
 
     // no-arg default constructor for JAXB
     public Entry(){}
@@ -42,6 +44,14 @@ public class Entry {
     @XmlElement(name = "creationDate")
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFile(File file) {
+        this.file = file;
     }
 
     @Override

@@ -13,9 +13,9 @@ import java.sql.*;
 import java.util.Date;
 import java.util.Properties;
 
-public class DBHandler implements IFileHandler {
+public class DB implements IFileSaver {
 
-    private static final Logger logger = LoggerFactory.getLogger(DBHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(DB.class);
 
     private static final String DB_FILE_PROPERTY = "database.properties";
     private static final String DB_URL_PROPERTY = "db.url";
@@ -26,24 +26,33 @@ public class DBHandler implements IFileHandler {
     private final Connection connection;
     private final PreparedStatement addEntryStatement;
 
-    public DBHandler() throws SQLException, ClassNotFoundException {
+    public DB() throws SQLException, ClassNotFoundException {
         Class.forName("org.postgresql.Driver");
         Properties props = readProperties();
         String url = props.getProperty(DB_URL_PROPERTY);
         String user = props.getProperty(DB_USER_PROPERTY);
         String password = props.getProperty(DB_PASSWORD_PROPERTY);
         connection = DriverManager.getConnection(url, user, password);
-        addEntryStatement = connection.prepareStatement(ADD_ENTRY_STATEMENT);
+        addEntryStatement = connection.prepareStatement(ADD_ENTRY_STATEMENT, Statement.RETURN_GENERATED_KEYS);
     }
 
     @Override
-    public void handleContent(String content, Date date) throws Exception {
-        addEntryStatement.setString(1, content);
-        addEntryStatement.setTimestamp(2, new Timestamp(date.getTime()));
+    public int saveContent(String content, Date date) {
+
         try {
-            addEntryStatement.execute();
+            addEntryStatement.setString(1, content);
+            addEntryStatement.setTimestamp(2, new Timestamp(date.getTime()));
+            addEntryStatement.executeUpdate();
+            addEntryStatement.getGeneratedKeys();
+            ResultSet rs = addEntryStatement.getGeneratedKeys();
+            if(rs.next()) {
+                return rs.getInt(1);
+            } else {
+                return SAVE_ERROR_ID;
+            }
         } catch (Exception e) {
             logger.debug(e.getMessage());
+            return SAVE_ERROR_ID;
         }
     }
 

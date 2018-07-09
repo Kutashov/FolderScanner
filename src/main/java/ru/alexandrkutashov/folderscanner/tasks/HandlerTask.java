@@ -2,7 +2,8 @@ package ru.alexandrkutashov.folderscanner.tasks;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.alexandrkutashov.folderscanner.db.IFileHandler;
+import ru.alexandrkutashov.folderscanner.db.IFileMover;
+import ru.alexandrkutashov.folderscanner.db.IFileSaver;
 import ru.alexandrkutashov.folderscanner.xml.Entry;
 
 import java.util.Queue;
@@ -16,23 +17,32 @@ public class HandlerTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(HandlerTask.class);
 
     private final Queue<Entry> handlerQueue;
-    private final IFileHandler fileHandler;
+    private final IFileSaver fileSaver;
+    private final IFileMover fileMover;
 
-    public HandlerTask(Queue<Entry> queue, IFileHandler handler) {
+    public HandlerTask(Queue<Entry> queue, IFileSaver handler, IFileMover mover) {
         handlerQueue = queue;
-        fileHandler = handler;
+        fileSaver = handler;
+        fileMover = mover;
     }
 
     @Override
     public void run() {
         while (true) {
-            Entry file = handlerQueue.poll();
-            if (file != null) {
+            Entry entry = handlerQueue.poll();
+            if (entry != null) {
                 try {
-                    logger.debug("Handled:" + file.toString());
-                    fileHandler.handleContent(file.getContent(), file.getDate());
+                    logger.debug("Handled: " + entry.toString());
+                    String oldPath = entry.getFile().getAbsolutePath();
+                    entry.setFile(fileMover.move(entry.getFile(), null));
+                    int result = fileSaver.saveContent(entry.getContent(), entry.getDate());
+                    if (result == IFileSaver.SAVE_ERROR_ID) {
+                        logger.error("Can't write content to db!");
+                        //record was not applied, we should revert moving
+                        entry.setFile(fileMover.move(entry.getFile(), oldPath));
+                    }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error(e.getClass().getName() + ": " + e.getMessage());
                 }
             }
         }
