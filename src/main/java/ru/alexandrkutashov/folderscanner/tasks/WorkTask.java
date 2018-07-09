@@ -6,9 +6,12 @@ import ru.alexandrkutashov.folderscanner.xml.Entry;
 import ru.alexandrkutashov.folderscanner.xml.IFileConverter;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import static ru.alexandrkutashov.folderscanner.Utils.getFileExtension;
 
@@ -26,16 +29,19 @@ public class WorkTask implements Runnable {
     private final Queue<File> filesQueue;
     private final Queue<File> foldersQueue;
     private final Queue<Entry> handleQueue;
+    private final Set<File> symbolicLinkSet;
     private final IFileConverter fileConverter;
 
     private List<File> filesList = new LinkedList<>();
     private List<File> folderList = new LinkedList<>();
 
     public WorkTask(Queue<File> filesQueue, Queue<File> foldersQueue,
-                    Queue<Entry> handleQueue, IFileConverter fileConverter) {
+                    Queue<Entry> handleQueue, Set<File> symbolicLinkSet,
+                    IFileConverter fileConverter) {
         this.filesQueue = filesQueue;
         this.foldersQueue = foldersQueue;
         this.handleQueue = handleQueue;
+        this.symbolicLinkSet = symbolicLinkSet;
         this.fileConverter = fileConverter;
     }
 
@@ -50,17 +56,39 @@ public class WorkTask implements Runnable {
             }
 
             if (currentFile != null && !currentFile.isDirectory()) {
+
+                try {
+                    currentFile = checkForSymbolicLink(currentFile);
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                    currentFile = null;
+                    continue;
+                }
+
                 execute(currentFile);
                 currentFile = null;
             } else {
-                File folder = foldersQueue.poll();
+                File folder = currentFile;
+                if (folder == null) {
+                    folder = foldersQueue.poll();
+                } else {
+                    currentFile = null;
+                }
 
                 if (folder == null) {
                     continue;
                 }
 
+                try {
+                    folder = checkForSymbolicLink(folder);
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                    continue;
+                }
+
                 File[] files = folder.listFiles(file -> file.isDirectory()
-                        || TARGET_EXTENSION.equals(getFileExtension(file)));
+                        || TARGET_EXTENSION.equals(getFileExtension(file))
+                        || Files.isSymbolicLink(file.toPath()));
                 if (files != null) {
 
                     //sort files
@@ -90,6 +118,18 @@ public class WorkTask implements Runnable {
             }
         }
 
+    }
+
+    private File checkForSymbolicLink(File file) throws IOException {
+        if (Files.isSymbolicLink(file.toPath())) {
+            if (symbolicLinkSet.contains(file)) {
+                throw new IOException("Cyclic symlink found!: " + file);
+            }
+            symbolicLinkSet.add(file);
+            return file.getCanonicalFile();
+        } else {
+            return file;
+        }
     }
 
     private void execute(File file) {

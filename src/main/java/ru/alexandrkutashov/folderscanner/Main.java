@@ -13,6 +13,7 @@ import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.*;
 
 public class Main {
@@ -24,6 +25,7 @@ public class Main {
     private static final Queue<File> filesQueue = new ConcurrentLinkedQueue<>();
     private static final Queue<File> foldersQueue = new ConcurrentLinkedQueue<>();
     private static final Queue<Entry> databaseQueue = new ConcurrentLinkedQueue<>();
+    private static final Set<File> symbolicLinkSet = new CopyOnWriteArraySet<>();
     private static final int cores = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService schedulerThreads = Executors.newFixedThreadPool(cores);
     //endregion
@@ -34,7 +36,7 @@ public class Main {
             //launch cores-1 worker thread and one for handling db
             for (int i = 0; i < cores - 1; ++i) {
                 schedulerThreads.execute(new WorkTask(filesQueue, foldersQueue, databaseQueue,
-                        new XmlFileConverter()));
+                        symbolicLinkSet, new XmlFileConverter()));
             }
             schedulerThreads.execute(new HandlerTask(databaseQueue, new DBHandler()));
 
