@@ -5,6 +5,18 @@ apply plugin: 'java'
 
 sourceCompatibility = 1.8
 
+//create a single Jar with all dependencies
+task buildJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Folder scanner jar',
+                'Implementation-Version': version,
+                'Main-Class': 'ru.alexandrkutashov.folderscanner.Main'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
 repositories {
     mavenCentral()
 }

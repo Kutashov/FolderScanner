@@ -29,6 +29,7 @@ public class HandlerTask implements Runnable {
             Entry file = handlerQueue.poll();
             if (file != null) {
                 try {
+                    logger.debug("Handled:" + file.toString());
                     fileHandler.handleContent(file.getContent(), file.getDate());
                 } catch (Exception e) {
                     e.printStackTrace();
