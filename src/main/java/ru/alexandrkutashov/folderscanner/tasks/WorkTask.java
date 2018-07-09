@@ -56,68 +56,74 @@ public class WorkTask implements Runnable {
             }
 
             if (currentFile != null && !currentFile.isDirectory()) {
-
-                try {
-                    currentFile = checkForSymbolicLink(currentFile);
-                } catch (IOException e) {
-                    logger.error(e.getMessage());
-                    currentFile = null;
-                    continue;
-                }
-
-                execute(currentFile);
-                currentFile = null;
+                currentFile = processFile(currentFile);
             } else {
-                File folder = currentFile;
-                if (folder == null) {
-                    folder = foldersQueue.poll();
-                } else {
-                    currentFile = null;
-                }
-
-                if (folder == null) {
-                    continue;
-                }
-
-                try {
-                    folder = checkForSymbolicLink(folder);
-                } catch (IOException e) {
-                    logger.error(e.getMessage());
-                    continue;
-                }
-
-                File[] files = folder.listFiles(file -> file.isDirectory()
-                        || TARGET_EXTENSION.equals(getFileExtension(file))
-                        || Files.isSymbolicLink(file.toPath()));
-                if (files != null) {
-
-                    //sort files
-                    for (final File fileEntry : files) {
-                        if (fileEntry.isDirectory()) {
-                            ((LinkedList<File>) folderList).addLast(fileEntry);
-                        } else {
-                            ((LinkedList<File>) filesList).addLast(fileEntry);
-                        }
-                    }
-
-                    //we might have a new target to process without polling queues
-                    currentFile = filesList.size() > 0 ? ((LinkedList<File>) filesList).removeFirst() :
-                            (folderList.size() > 0 ? ((LinkedList<File>) folderList).removeFirst() : null);
-
-                    if (folderList.size() > 0) {
-                        foldersQueue.addAll(folderList);
-                        folderList.clear();
-                    }
-
-                    if (filesList.size() > 0) {
-                        filesQueue.addAll(filesList);
-                        filesList.clear();
-                    }
-                }
-
+                currentFile = processFolder(currentFile);
             }
         }
 
+    }
+
+    private File processFolder(File currentFile) {
+        File folder = currentFile;
+        if (folder == null) {
+            folder = foldersQueue.poll();
+        } else {
+            currentFile = null;
+        }
+
+        if (folder == null) {
+            return null;
+        }
+
+        try {
+            folder = checkForSymbolicLink(folder);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            return null;
+        }
+
+        File[] files = folder.listFiles(file -> file.isDirectory()
+                || TARGET_EXTENSION.equals(getFileExtension(file))
+                || Files.isSymbolicLink(file.toPath()));
+        if (files != null) {
+
+            //sort files
+            for (final File fileEntry : files) {
+                if (fileEntry.isDirectory()) {
+                    ((LinkedList<File>) folderList).addLast(fileEntry);
+                } else {
+                    ((LinkedList<File>) filesList).addLast(fileEntry);
+                }
+            }
+
+            //we might have a new target to process without polling queues
+            currentFile = filesList.size() > 0 ? ((LinkedList<File>) filesList).removeFirst() :
+                    (folderList.size() > 0 ? ((LinkedList<File>) folderList).removeFirst() : null);
+
+            if (folderList.size() > 0) {
+                foldersQueue.addAll(folderList);
+                folderList.clear();
+            }
+
+            if (filesList.size() > 0) {
+                filesQueue.addAll(filesList);
+                filesList.clear();
+            }
+        }
+        return currentFile;
+    }
+
+    private File processFile(File currentFile) {
+        try {
+            currentFile = checkForSymbolicLink(currentFile);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            return null;
+        }
+
+        execute(currentFile);
+        return null;
     }
 
     private File checkForSymbolicLink(File file) throws IOException {
